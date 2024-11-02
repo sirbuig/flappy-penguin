@@ -16,7 +16,7 @@ layout (location = 1) in vec4 in_Color;        //  Se preia din buffer de pe a d
 layout (location=2) in vec2 texCoord;          //  Se preia din buffer de pe a treia pozitie (2) atributul care contine textura;
 
 //  Variabile de iesire;
-out vec4 gl_Position;   //  Transmite pozitia actualizata spre programul principal;
+// out vec4 gl_Position;   //  Transmite pozitia actualizata spre programul principal;
 out vec4 ex_Color;      //  Transmite culoarea (de modificat in Shader.frag); 
 out vec2 tex_Coord;     //  Transmite textura (de modificat in Shader.frag); 
 
