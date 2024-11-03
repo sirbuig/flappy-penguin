@@ -1,5 +1,4 @@
-﻿// #include <windows.h>
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
 #include <GL/glew.h>
 #include <GL/freeglut.h>
@@ -8,193 +7,194 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "SOIL/SOIL.h"
 
 GLuint
-	VaoId,
-	VboId,
-	EboId,
-	ProgramId,
-	myMatrixLocation,
-	viewLocation,
-	projLocation,
-	matrRotlLocation,
-	codColLocation;
-GLuint
-	texture;
+    VaoTGlacier, VboTGlacier, ColorTGlacier, EboTGlacier,
+    VaoBGlacier, VboBGlacier, ColorBGlacier, EboBGlacier,
+    ProgramId,
+    myMatrixLocation;
 
 GLfloat
-	winWidth = 1100,
-	winHeight = 800;
+    winWidth = 800, winHeight = 600;
 
 glm::mat4
-	myMatrix,
-	matrRot;
+    myMatrix,
+    resizeMatrix;
 
-int codCol;
+float xMin = -400.f, xMax = 400.f, yMin = -300.f, yMax = 300.f;
+float obstacleXPos = xMax;
+float obstacleSpeed = 0.2f;
 
-float PI = 3.141592;
-
-float obsX = 0.0, obsY = 0.0, obsZ = 800.f;
-float refX = 0.0f, refY = 0.0f;
-float vX = 0.0;
-
-glm::mat4 view;
-float width = 800, height = 600, xMin = -800.f, xMax = 800, yMin = -600, yMax = 600, zNear = 0, zFar = 1000, fov = 45;
-glm::mat4 projection;
-
-void LoadTexture(const char *texturePath)
-{
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	int width, height;
-	unsigned char *image = SOIL_load_image(texturePath, &width, &height, 0, SOIL_LOAD_RGBA);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	glGenerateMipmap(GL_TEXTURE_2D);
-
-	SOIL_free_image_data(image);
-	glBindTexture(GL_TEXTURE_2D, 0);
+void CreateShaders(void) {
+    ProgramId = LoadShaders("example.vert", "example.frag");
+    glUseProgram(ProgramId);
 }
 
-void CreateShaders(void)
-{
-	ProgramId = LoadShaders("example.vert", "example.frag");
-	glUseProgram(ProgramId);
+void CreateTGlacier(void) {
+    // coordinates for Top Glacier
+    static const GLfloat VerticesTG[] = {
+        -50.0f, 100.0f, 0.0f, 1.0f,
+        50.0f, 100.0f, 0.0f, 1.0f,
+        50.0f, 350.0f, 0.0f, 1.0f,
+        -50.0f, 350.0f, 0.0f, 1.0f
+    };
+
+    // colors
+    static const GLfloat ColorsTG[] = {
+        1.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    // order
+    static const GLuint IndicesTG[] = {
+        0, 1, 2, 2, 3, 0
+    };
+
+    glGenVertexArrays(1, &VaoTGlacier);
+    glBindVertexArray(VaoTGlacier);
+
+    glGenBuffers(1, &VboTGlacier);
+    glBindBuffer(GL_ARRAY_BUFFER, VboTGlacier);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VerticesTG), VerticesTG, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glGenBuffers(1, &ColorTGlacier);
+    glBindBuffer(GL_ARRAY_BUFFER, ColorTGlacier);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ColorsTG), ColorsTG, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glGenBuffers(1, &EboTGlacier);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EboTGlacier);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(IndicesTG), IndicesTG, GL_STATIC_DRAW);
 }
 
-void CreateVBO(void)
-{
+void CreateBGlacier(void) {
+    // coordinates for Bottom Glacier
+    static const GLfloat VerticesBG[] = {
+        -50.0f, -100.0f, 0.0f, 1.0f,
+        50.0f, -100.0f, 0.0f, 1.0f,
+        50.0f, -350.0f, 0.0f, 1.0f,
+        -50.0f, -350.0f, 0.0f, 1.0f
+    };
 
-	GLfloat Vertices[] = {
-		-50.0f, -50.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-		50.0f, -50.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-		50.0f, 50.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-		-50.0f, 50.0f, 0.0f, 1.0f, 0.0f, 1.0f};
+    // colors
+    static const GLfloat ColorsBG[] = {
+        1.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, 1.0f, 0.0f, 1.0f,
+        0.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, 0.0f, 0.0f, 1.0f
+    };
 
-	GLuint Indices[] = {
-		0, 1, 2,
-		0, 2, 3};
+    // order
+    static const GLuint IndicesBG[] = {
+        0, 1, 2, 2, 3, 0
+    };
 
-	glGenVertexArrays(1, &VaoId);
-	glBindVertexArray(VaoId);
+    glGenVertexArrays(1, &VaoBGlacier);
+    glBindVertexArray(VaoBGlacier);
 
-	glGenBuffers(1, &VboId);
-	glBindBuffer(GL_ARRAY_BUFFER, VboId);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+    glGenBuffers(1, &VboBGlacier);
+    glBindBuffer(GL_ARRAY_BUFFER, VboBGlacier);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VerticesBG), VerticesBG, GL_STATIC_DRAW);
 
-	glGenBuffers(1, &EboId);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EboId);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)0);
-	glEnableVertexAttribArray(0);
+    glGenBuffers(1, &ColorBGlacier);
+    glBindBuffer(GL_ARRAY_BUFFER, ColorBGlacier);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ColorsBG), ColorsBG, GL_STATIC_DRAW);
 
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid *)(4 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glGenBuffers(1, &EboBGlacier);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EboBGlacier);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(IndicesBG), IndicesBG, GL_STATIC_DRAW);
 }
 
-void DestroyShaders(void)
-{
-	glDeleteProgram(ProgramId);
+void DestroyShaders(void) {
+    glDeleteProgram(ProgramId);
 }
 
-void DestroyVBO(void)
-{
-	glDisableVertexAttribArray(2);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(0);
+void DestroyVBO(void) {
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glDeleteBuffers(1, &VboId);
-	glDeleteBuffers(1, &EboId);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &VboTGlacier);
+    glDeleteBuffers(1, &ColorTGlacier);
+    glDeleteBuffers(1, &EboTGlacier);
+    glDeleteBuffers(1, &VboBGlacier);
+    glDeleteBuffers(1, &ColorBGlacier);
+    glDeleteBuffers(1, &EboBGlacier);
 
-	glBindVertexArray(0);
-	glDeleteVertexArrays(1, &VaoId);
+    glBindVertexArray(0);
+    glDeleteVertexArrays(1, &VaoTGlacier);
+    glDeleteVertexArrays(1, &VaoBGlacier);
 }
 
-void Cleanup(void)
-{
-	DestroyShaders();
-	DestroyVBO();
+void Cleanup(void) {
+    DestroyShaders();
+    DestroyVBO();
 }
 
-void Initialize(void)
-{
-	glClearColor(0.49f, 0.98f, 0.91f, 1.0f);
+void Initialize(void) {
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-	CreateVBO();
+    CreateTGlacier();
+    CreateBGlacier();
+    CreateShaders();
 
-	LoadTexture("pinguin.png");
-
-	CreateShaders();
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
-	viewLocation = glGetUniformLocation(ProgramId, "view");
-	projLocation = glGetUniformLocation(ProgramId, "projection");
+    myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
+    resizeMatrix = glm::ortho(xMin, xMax, yMin, yMax);
 }
 
-void RenderFunction(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT);
+void UpdateObstaclePosition() {
+    obstacleXPos -= obstacleSpeed;
 
-	matrRot = glm::rotate(glm::mat4(1.0f), PI / 8, glm::vec3(0.0, 0.0, 1.0));
-
-	glm::vec3 obs = glm::vec3(obsX, obsY, obsZ);
-
-	refX = obsX;
-	refY = obsY;
-	glm::vec3 refPoint = glm::vec3(refX, refY, -1.0f);
-
-	glm::vec3 vert = glm::vec3(vX, 1.0f, 0.0f);
-
-	view = glm::lookAt(obs, refPoint, vert);
-
-	projection = glm::perspective(fov, GLfloat(width) / GLfloat(height), zNear, zFar);
-
-	myMatrix = glm::mat4(1.0f);
-
-	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
-	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
-	glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	glUniform1i(glGetUniformLocation(ProgramId, "myTexture"), 0);
-
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-	glutSwapBuffers();
-	glFlush();
+    if (obstacleXPos < xMin - 100.0f) {
+        obstacleXPos = xMax + 100.0f;
+    }
 }
 
-int main(int argc, char *argv[])
-{
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-	glutInitWindowSize(winWidth, winHeight);
-	glutInitWindowPosition(100, 100);
-	glutCreateWindow("Flappy Penguin");
+void RenderFunction(void) {
+    glClear(GL_COLOR_BUFFER_BIT);
 
-	glewInit();
+    UpdateObstaclePosition();
 
-	Initialize();
-	glutDisplayFunc(RenderFunction);
-	glutIdleFunc(RenderFunction);
+    myMatrix = resizeMatrix * glm::translate(glm::mat4(1.0f), glm::vec3(obstacleXPos, 0.0f, 0.0f));
+    glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 
-	glutCloseFunc(Cleanup);
+    glBindVertexArray(VaoTGlacier);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-	glutMainLoop();
+    glBindVertexArray(VaoBGlacier);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-	return 0;
+    glFlush();
+    glutPostRedisplay();
+}
+
+int main(int argc, char *argv[]) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitWindowSize(winWidth, winHeight);
+    glutInitWindowPosition(100, 100);
+    glutCreateWindow("Ghetar speis");
+
+    glewInit();
+
+    Initialize();
+    glutDisplayFunc(RenderFunction);
+    glutCloseFunc(Cleanup);
+
+    glutMainLoop();
+
+    return 0;
 }
