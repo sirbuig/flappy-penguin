@@ -14,13 +14,20 @@ find_package(GLEW REQUIRED)
 target_link_libraries(main OpenGL::GL GLUT::GLUT GLEW::GLEW GLU SOIL)
 
 set(SHADER_FILES
-    assets/shaders/example.frag
-    assets/shaders/example.vert
+        assets/shaders/example.frag
+        assets/shaders/example.vert
 )
 
 set(IMG_FILES
-    assets/textures/pinguin.png
+        assets/textures/pinguin.png
+        assets/textures/ghetar.png
+        assets/textures/background.jpeg
+)
+
+set(AUDIO_FILES
+        assets/sounds/fein_sound.wav
 )
 
 file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${IMG_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${AUDIO_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
