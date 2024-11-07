@@ -22,6 +22,7 @@ set(IMG_FILES
         assets/textures/pinguin.png
         assets/textures/ghetar.png
         assets/textures/background.jpeg
+        assets/textures/ghetar2.png
 )
 
 set(AUDIO_FILES
